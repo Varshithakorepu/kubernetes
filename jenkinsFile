@@ -1,13 +1,14 @@
 pipeline {
     agent any
-    tools{
-        jdk 'JDK21'
+    tools {
+        jdk 'JDK21'  // Make sure JDK is configured in Jenkins
     }
 
     environment {
         DOCKERHUB_USER = 'varshitha1105'
         IMAGE = 'demo-maven'
         TAG = 'v1'
+        DOCKER_CREDENTIALS_ID = 'dockerhub'  // Jenkins credentials ID for Docker Hub
     }
 
     stages {
@@ -26,14 +27,16 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t %DOCKERHUB_USER%/%IMAGE%:%TAG% .'
+                bat "docker build -t ${DOCKERHUB_USER}/${IMAGE}:${TAG} ."
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                bat 'docker login -u %DOCKERHUB_USER% -p yourpassword'
-                bat 'docker push %DOCKERHUB_USER%/%IMAGE%:%TAG%'
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    bat 'echo %PASS% | docker login -u %USER% --password-stdin'
+                    bat "docker push ${DOCKERHUB_USER}/${IMAGE}:${TAG}"
+                }
             }
         }
 
@@ -46,7 +49,8 @@ pipeline {
 
         stage('Check Pod Logs') {
             steps {
-                bat 'kubectl logs -l app=hello-java --tail=20'
+                // Use the correct label from your deployment.yaml
+                bat 'FOR /F "tokens=*" %i IN (\'kubectl get pods -l app=demo-maven -o jsonpath="{.items[0].metadata.name}"\') DO kubectl logs %i'
             }
         }
     }
