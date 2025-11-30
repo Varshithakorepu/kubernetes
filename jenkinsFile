@@ -5,10 +5,8 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_USER = 'varshitha1105'
         IMAGE = 'demo-maven'
         TAG = 'v1'
-        DOCKER_CREDENTIALS_ID = 'dockerhub'  // Jenkins credentials ID for Docker Hub
     }
 
     stages {
@@ -27,21 +25,25 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t ${DOCKERHUB_USER}/${IMAGE}:${TAG} ."
+                bat "docker build -t varshitha1105/${IMAGE}:${TAG} ."
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    bat 'echo %PASS% | docker login -u %USER% --password-stdin'
-                    bat "docker push ${DOCKERHUB_USER}/${IMAGE}:${TAG}"
+                echo '🔐 Logging in to Docker Hub...'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+                    bat """
+                        echo %DOCKERHUB_PASS% | docker login -u %DOCKERHUB_USER% --password-stdin
+                        docker push %DOCKERHUB_USER%/${IMAGE}:${TAG}
+                    """
                 }
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
+                echo '🚀 Deploying to Kubernetes...'
                 bat 'kubectl apply -f deployment.yaml'
                 bat 'kubectl apply -f service.yaml'
             }
@@ -49,7 +51,8 @@ pipeline {
 
         stage('Check Pod Logs') {
             steps {
-                // Use the correct label from your deployment.yaml
+                echo '📄 Fetching pod logs...'
+                // Replace label 'demo-maven' with whatever you used in deployment.yaml
                 bat 'FOR /F "tokens=*" %i IN (\'kubectl get pods -l app=demo-maven -o jsonpath="{.items[0].metadata.name}"\') DO kubectl logs %i'
             }
         }
