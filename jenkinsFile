@@ -2,11 +2,13 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = "varshitha1105"
-        IMAGE_NAME = "demo-maven"
+        DOCKERHUB_USER = 'varshitha1105'
+        IMAGE = 'demo-maven'
+        TAG = 'v1'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -15,39 +17,33 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                sh "mvn clean package"
+                bat 'mvn clean package'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest ."
+                bat 'docker build -t %DOCKERHUB_USER%/%IMAGE%:%TAG% .'
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
-                    sh "docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest"
-                }
+                bat 'docker login -u %DOCKERHUB_USER% -p yourpassword'
+                bat 'docker push %DOCKERHUB_USER%/%IMAGE%:%TAG%'
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh "kubectl apply -f deployment.yaml"
-                sh "kubectl apply -f service.yaml"
+                bat 'kubectl apply -f deployment.yaml'
+                bat 'kubectl apply -f service.yaml'
             }
         }
 
-        stage('Check Pod Logs (HelloWorld Output)') {
+        stage('Check Pod Logs') {
             steps {
-                sh '''
-                    POD=$(kubectl get pods -l app=demo-maven -o jsonpath="{.items[0].metadata.name}")
-                    echo "Showing HelloWorld output from pod:"
-                    kubectl logs $POD
-                '''
+                bat 'kubectl logs -l app=hello-java --tail=20'
             }
         }
     }
