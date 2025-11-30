@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools{
+        jdl 'JDK21'
+    }
 
     environment {
         DOCKERHUB_USER = 'varshitha1105'
