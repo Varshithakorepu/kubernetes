@@ -43,18 +43,11 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                echo '🚀 Deploying to Kubernetes...'
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                 bat 'kubectl apply -f deployment.yaml'
                 bat 'kubectl apply -f service.yaml'
             }
         }
-
-        stage('Check Pod Logs') {
-            steps {
-                echo '📄 Fetching pod logs...'
-                // Replace label 'demo-maven' with whatever you used in deployment.yaml
-                bat 'FOR /F "tokens=*" %i IN (\'kubectl get pods -l app=demo-maven -o jsonpath="{.items[0].metadata.name}"\') DO kubectl logs %i'
-            }
-        }
+    }
     }
 }
