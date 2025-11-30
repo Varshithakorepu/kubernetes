@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-maven-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-maven
+  template:
+    metadata:
+      labels:
+        app: demo-maven
+    spec:
+      containers:
+      - name: demo-maven
+        image: varshitha1105/demo-maven:latest
+        command: ["java"]
+        args: ["-cp", "app.jar", "com.example.App"]
+        ports:
+        - containerPort: 8080
